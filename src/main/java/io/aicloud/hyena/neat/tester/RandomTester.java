@@ -1,6 +1,7 @@
 package io.aicloud.hyena.neat.tester;
 
 import io.aicloud.hyena.neat.Cluster;
+import io.aicloud.hyena.neat.dateset.Reader;
 import io.aicloud.hyena.neat.util.PartitionFormat;
 import io.aicloud.sdk.hyena.Builder;
 import io.aicloud.sdk.hyena.Client;
@@ -14,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -33,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j(topic = "random-tester")
 @ConfigurationProperties(prefix = "tester.random")
 public class RandomTester implements InitializingBean {
+    private int concurrency;
     private int period;
     private String[] hyena;
     private String kafka;
@@ -42,13 +45,21 @@ public class RandomTester implements InitializingBean {
 
     @Autowired
     private Cluster cluster;
+    @Autowired
+    private Reader reader;
     private IpTablesPartition lastPartition;
 
+    private ExecutorService executors;
     private ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
     private IpTablesPartitioner partitioner = new IpTablesPartitioner();
 
     private void startOp() {
-        log.info("start op");
+        log.info("start op in {} concurrency", concurrency);
+        for (int i = 0; i < concurrency; i++) {
+            executors.execute(() -> {
+
+            });
+        }
     }
 
     private void startRandomPartition() {
@@ -80,11 +91,13 @@ public class RandomTester implements InitializingBean {
             log.info("exit hook complete");
         }));
 
+        initHyena();
         startRandomPartition();
         startOp();
     }
 
     private void initHyena() throws Exception {
+        executors = Executors.newFixedThreadPool(concurrency);
         client = new Builder(hyena)
                 .kafka(kafka, topic)
                 .dim(dim).build();

@@ -12,6 +12,7 @@ cluster:
 
 tester:
   random:
+    concurrency: 1
     period: 30
     hyena:
       - 127.0.0.1:12345
