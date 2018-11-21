@@ -14,9 +14,9 @@ import java.io.IOException;
 public interface Reader {
     void reset() throws IOException;
 
-    float[] read() throws IOException;
+    Float[] read() throws IOException;
 
     boolean next();
 
-    void close() throws IOException;
+    int getDim();
 }

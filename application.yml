@@ -12,11 +12,14 @@ cluster:
 
 tester:
   random:
-    concurrency: 1
     period: 30
+    timeout: 200
     hyena:
       - 127.0.0.1:12345
       - 127.0.0.1:22345
     kafka: 127.0.0.1:9292
     topic: hyena
     dim: 128
+
+dataset:
+  file: /path

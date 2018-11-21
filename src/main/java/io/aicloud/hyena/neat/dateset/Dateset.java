@@ -1,12 +1,12 @@
 package io.aicloud.hyena.neat.dateset;
 
-import com.google.common.io.LittleEndianDataInputStream;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-import java.io.DataInput;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,34 +25,48 @@ import java.io.InputStream;
 @ConfigurationProperties(prefix = "dataset")
 @Component
 public class Dateset implements Reader {
-    private DataInput in;
+    private InputStream in;
     private String file;
     private int dim;
     private int total;
     private int read;
+    private ByteBuf buf;
 
     @Override
     public void reset() throws IOException {
-        close();
+        try {
+            this.in = new FileInputStream(file);
+            int size = in.available();
+            byte[] data = new byte[in.available()];
+            int n = this.in.read(data);
+            if (n != data.length) {
+                throw new RuntimeException("read data not complete");
+            }
 
-        InputStream in = new FileInputStream(file);
-        this.in = new LittleEndianDataInputStream(in);
+            buf = Unpooled.wrappedBuffer(data);
 
-        int size = in.available();
-        dim = this.in.readInt();
-        if (size % ((dim + 1) * 4) != 0) {
-            throw new RuntimeException("weird file size: " + size + "," + dim);
+            buf.markReaderIndex();
+            dim = buf.readIntLE();
+            buf.resetReaderIndex();
+            if (size % ((dim + 1) * 4) != 0) {
+                throw new RuntimeException("weird file size: " + size + "," + dim);
+            }
+
+            total = size / ((dim + 1) * 4);
+            read = 0;
+        } finally {
+            if (in != null) {
+                in.close();
+            }
         }
-
-        total = size / ((dim + 1) * 4);
-        read = 0;
     }
 
     @Override
-    public float[] read() throws IOException {
-        float[] value = new float[dim];
+    public Float[] read() throws IOException {
+        Float[] value = new Float[dim];
+        buf.skipBytes(4);
         for (int i = 0; i < dim; i++) {
-            value[i] = in.readFloat();
+            value[i] = buf.readFloatLE();
         }
         read++;
         return value;
@@ -61,13 +75,5 @@ public class Dateset implements Reader {
     @Override
     public boolean next() {
         return read < total;
-    }
-
-    @Override
-    public void close() throws IOException {
-        if (in != null && in instanceof InputStream) {
-            ((InputStream) in).close();
-            in = null;
-        }
     }
 }
