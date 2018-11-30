@@ -5,9 +5,8 @@ import io.aicloud.hyena.neat.dateset.Reader;
 import io.aicloud.hyena.neat.util.PartitionFormat;
 import io.aicloud.sdk.hyena.Builder;
 import io.aicloud.sdk.hyena.Client;
+import io.aicloud.sdk.hyena.SearchResult;
 import io.aicloud.sdk.hyena.pb.InsertRequest;
-import io.aicloud.sdk.hyena.pb.SearchRequest;
-import io.aicloud.sdk.hyena.pb.SearchResponse;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -82,14 +81,14 @@ public class RandomTester implements InitializingBean {
                     }
 
                     client.insert(InsertRequest.newBuilder().addIds(newId).addAllXbs(Arrays.asList(e)).build());
-                    io.aicloud.sdk.hyena.Future future = client.search(SearchRequest.newBuilder().addAllXq(Arrays.asList(e)).build());
-                    SearchResponse resp = future.get();
-                    if (resp.getXids(0) == -1) {
+                    io.aicloud.sdk.hyena.Future future = client.search(e);
+                    SearchResult resp = future.get();
+                    if (resp.getIds().get(0) == -1) {
                         log.error("search {} failed with -1", offset);
                         System.exit(1);
                     }
-                    if (resp.getXids(0) != newId) {
-                        log.error("search {} failed with not match expect {}, got {}", offset, newId, resp.getXids(0));
+                    if (resp.getIds().get(0) != newId) {
+                        log.error("search {} failed with not match expect {}, got {}", offset, newId, resp.getIds().get(0));
                         System.exit(1);
                     }
                 } catch (Exception e1) {
